@@ -51,7 +51,7 @@ const Index = () => {
     },
   {
   type: 'product',
-  src: 'https://images.unsplash.com/photo-1592914764927-3eb86d9b1a0b?ixid=MnwxMjA3fDB8MXxzZWFyY2h8MTB8fHBlYXBlciUyMGJhZ3N8ZW58MHx8fHwxNjk4NDE3NjEx&ixlib=rb-4.0.3&q=80&w=1080',
+  src: 'https://images.unsplash.com/photo-1746857086839-40f8690147ab?q=80&w=1284&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
   title: 'Upcycled Fashion',
   subtitle: 'Beautiful Accessories from Electronic Waste',
   badge: '✨ Luxury Eco',
