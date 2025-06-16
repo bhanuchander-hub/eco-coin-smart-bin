@@ -1,317 +1,258 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Search, ShoppingCart, Star, Coins, Filter, Heart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import Navbar from '@/components/Navbar';
+import { Coins, Search, Filter, Star, ShoppingCart, Leaf, Award, TrendingUp } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import EnhancedNavbar from '@/components/EnhancedNavbar';
+import { ProductScraper, type ScrapedProduct } from '@/services/productScraper';
 
 const Marketplace = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [sortBy, setSortBy] = useState('popular');
-  const [cart, setCart] = useState<any[]>([]);
-
-  const navigate = useNavigate();
-
-  const categories = [
-    { id: 'all', name: 'All Products' },
-    { id: 'home', name: 'Home Accessories' },
-    { id: 'mobile', name: 'Mobile Accessories' },
-    { id: 'jewelry', name: 'Jewelry' },
-    { id: 'decor', name: 'Decor' },
-    { id: 'bags', name: 'Bags & Storage' }
-  ];
-
-  const products = [
-    {
-      id: 1,
-      name: 'Recycled Plastic Phone Case',
-      category: 'mobile',
-      coinPrice: 250,
-      inrPrice: 299,
-      image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&h=400&fit=crop',
-      rating: 4.8,
-      reviews: 124,
-      isNew: true,
-      description: 'Durable phone case made from 100% recycled ocean plastic'
-    },
-    {
-      id: 2,
-      name: 'Eco-Friendly Storage Box',
-      category: 'home',
-      coinPrice: 180,
-      inrPrice: 249,
-      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop',
-      rating: 4.6,
-      reviews: 89,
-      isBestSeller: true,
-      description: 'Stylish storage solution crafted from recycled plastic bottles'
-    },
-    {
-      id: 3,
-      name: 'Upcycled Plastic Jewelry Set',
-      category: 'jewelry',
-      coinPrice: 320,
-      inrPrice: 449,
-      image: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=400&h=400&fit=crop',
-      rating: 4.9,
-      reviews: 67,
-      isNew: true,
-      description: 'Beautiful handcrafted jewelry made from colorful recycled plastics'
-    },
-    {
-      id: 4,
-      name: 'Recycled Laptop Stand',
-      category: 'home',
-      coinPrice: 450,
-      inrPrice: 599,
-      image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=400&h=400&fit=crop',
-      rating: 4.7,
-      reviews: 203,
-      isBestSeller: true,
-      description: 'Ergonomic laptop stand made from premium recycled materials'
-    },
-    {
-      id: 5,
-      name: 'Eco Water Bottle',
-      category: 'home',
-      coinPrice: 200,
-      inrPrice: 299,
-      image: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=400&h=400&fit=crop',
-      rating: 4.5,
-      reviews: 156,
-      description: 'Insulated water bottle crafted from recycled plastic waste'
-    },
-    {
-      id: 6,
-      name: 'Recycled Tote Bag',
-      category: 'bags',
-      coinPrice: 150,
-      inrPrice: 199,
-      image: 'https://images.unsplash.com/photo-1615729947596-a598e5de0ab3?w=400&h=400&fit=crop',
-      rating: 4.4,
-      reviews: 98,
-      description: 'Stylish and durable tote bag made from recycled plastic materials'
-    }
-  ];
-
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+  const [products, setProducts] = useState<ScrapedProduct[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ScrapedProduct[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    const userData = localStorage.getItem('smartbin_user');
+    return userData ? JSON.parse(userData) : null;
   });
 
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case 'price-low':
-        return a.coinPrice - b.coinPrice;
-      case 'price-high':
-        return b.coinPrice - a.coinPrice;
-      case 'rating':
-        return b.rating - a.rating;
-      default:
-        return b.reviews - a.reviews; // Popular = most reviews
-    }
-  });
+  const categories = ['All', 'Mobile Accessories', 'Home & Garden', 'Fashion', 'Smart Home'];
 
-  const addToCart = (product: any) => {
-    setCart(prev => [...prev, product]);
-    // Show success message or animation here
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  useEffect(() => {
+    filterProducts();
+  }, [products, searchTerm, selectedCategory]);
+
+  const loadProducts = async () => {
+    setIsLoading(true);
+    
+    // Try to load from localStorage first
+    const stored = localStorage.getItem('smartbin_scraped_products');
+    if (stored) {
+      const storedProducts = JSON.parse(stored);
+      setProducts(storedProducts);
+      setIsLoading(false);
+      return;
+    }
+
+    // If no stored products, create mock products
+    const mockProducts = ProductScraper.getMockRecyclingProducts();
+    setProducts(mockProducts);
+    localStorage.setItem('smartbin_scraped_products', JSON.stringify(mockProducts));
+    setIsLoading(false);
   };
 
+  const filterProducts = () => {
+    let filtered = products;
+
+    if (selectedCategory !== 'All') {
+      filtered = filtered.filter(product => product.category === selectedCategory);
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredProducts(filtered);
+  };
+
+  const handlePurchase = (product: ScrapedProduct) => {
+    if (!user || user.coins < product.priceCoins) {
+      alert('Insufficient coins! Recycle more plastic to earn coins.');
+      return;
+    }
+
+    const updatedUser = {
+      ...user,
+      coins: user.coins - product.priceCoins
+    };
+
+    localStorage.setItem('smartbin_user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+    alert(`Successfully purchased ${product.name}! Your order will be shipped to your address.`);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50">
+        <EnhancedNavbar />
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-lg text-gray-600">Loading sustainable products...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-sky-50 to-amber-50">
-      <Navbar />
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50">
+      <EnhancedNavbar />
       
-      <main className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Sustainable Marketplace</h1>
-          <p className="text-gray-600">Discover amazing products made from recycled materials</p>
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-bold mb-4">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">
+              Eco Marketplace
+            </span>
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Discover amazing products made from recycled materials. Every purchase supports sustainability and ocean cleanup.
+          </p>
         </div>
 
-        {/* Search and Filters */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 mb-8 shadow-sm">
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 bg-white/50"
-                />
+        {/* Stats Banner */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-lg">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div className="space-y-2">
+              <div className="flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-emerald-600 mr-2" />
+                <span className="text-2xl font-bold text-emerald-600">{products.length}</span>
               </div>
+              <p className="text-sm text-gray-600">Products Available</p>
             </div>
-            
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="bg-white/50">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map(category => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="bg-white/50">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="popular">Most Popular</SelectItem>
-                <SelectItem value="rating">Highest Rated</SelectItem>
-                <SelectItem value="price-low">Price: Low to High</SelectItem>
-                <SelectItem value="price-high">Price: High to Low</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <div className="flex items-center justify-center">
+                <Leaf className="w-6 h-6 text-green-600 mr-2" />
+                <span className="text-2xl font-bold text-green-600">100%</span>
+              </div>
+              <p className="text-sm text-gray-600">Eco-Friendly</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-center">
+                <Award className="w-6 h-6 text-blue-600 mr-2" />
+                <span className="text-2xl font-bold text-blue-600">98%</span>
+              </div>
+              <p className="text-sm text-gray-600">Satisfaction Rate</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-center">
+                <Coins className="w-6 h-6 text-amber-600 mr-2" />
+                <span className="text-2xl font-bold text-amber-600">{user?.coins || 0}</span>
+              </div>
+              <p className="text-sm text-gray-600">Your Coins</p>
+            </div>
           </div>
         </div>
 
-        {/* Category Tags */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          {categories.map(category => (
-            <Button
-              key={category.id}
-              variant={selectedCategory === category.id ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCategory(category.id)}
-              className={selectedCategory === category.id ? 
-                "bg-gradient-to-r from-emerald-500 to-sky-500" : 
-                "bg-white/50 border-gray-200 hover:bg-white/80"
-              }
-            >
-              {category.name}
-            </Button>
-          ))}
+        {/* Search and Filter */}
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Input
+              type="text"
+              placeholder="Search eco-friendly products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-12 bg-white/80 border-gray-200 rounded-xl"
+            />
+          </div>
+          
+          <div className="flex gap-2 overflow-x-auto">
+            {categories.map((category) => (
+              <Button
+                key={category}
+                variant={selectedCategory === category ? "default" : "outline"}
+                onClick={() => setSelectedCategory(category)}
+                className={`whitespace-nowrap rounded-xl ${
+                  selectedCategory === category
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white'
+                    : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
+                }`}
+              >
+                {category}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* Products Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {sortedProducts.map(product => (
-            <Card 
-              key={product.id} 
-              className="bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 cursor-pointer group"
-              onClick={() => navigate(`/product/${product.id}`)}
-            >
-              <div className="relative overflow-hidden">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute top-2 left-2 flex flex-col gap-1">
-                  {product.isNew && (
-                    <Badge className="bg-emerald-500 hover:bg-emerald-600">New</Badge>
-                  )}
-                  {product.isBestSeller && (
-                    <Badge className="bg-amber-500 hover:bg-amber-600">Best Seller</Badge>
-                  )}
-                </div>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Add to wishlist logic
-                  }}
-                >
-                  <Heart className="w-4 h-4" />
-                </Button>
-              </div>
-              
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-gray-800 line-clamp-2 group-hover:text-emerald-600 transition-colors">
-                    {product.name}
-                  </h3>
-                </div>
-                
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                  {product.description}
-                </p>
-
-                <div className="flex items-center mb-3">
-                  <div className="flex items-center">
-                    {[...Array(5)].map((_, i) => (
-                      <Star 
-                        key={i} 
-                        className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'text-amber-400 fill-current' : 'text-gray-300'}`} 
-                      />
-                    ))}
-                  </div>
-                  <span className="text-sm text-gray-600 ml-2">
-                    {product.rating} ({product.reviews})
-                  </span>
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1">
-                      <Coins className="w-4 h-4 text-amber-500" />
-                      <span className="font-bold text-amber-600">{product.coinPrice} coins</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-sm text-gray-500">or ₹{product.inrPrice}</span>
-                  </div>
-                </div>
-
-                <Button 
-                  className="w-full bg-gradient-to-r from-emerald-500 to-sky-500 hover:from-emerald-600 hover:to-sky-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addToCart(product);
-                  }}
-                >
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Add to Cart
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* No Results */}
-        {sortedProducts.length === 0 && (
-          <div className="text-center py-12">
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-16">
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Search className="w-12 h-12 text-gray-400" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">No products found</h3>
-            <p className="text-gray-600">Try adjusting your search or filter criteria</p>
+            <h3 className="text-2xl font-semibold text-gray-600 mb-2">No products found</h3>
+            <p className="text-gray-500">Try adjusting your search or filter criteria</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 bg-white/90 backdrop-blur-sm border-0 overflow-hidden">
+                <div className="relative">
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&h=300&fit=crop';
+                    }}
+                  />
+                  <div className="absolute top-4 left-4">
+                    <Badge className="bg-emerald-500 text-white">
+                      <Leaf className="w-3 h-3 mr-1" />
+                      Eco-Friendly
+                    </Badge>
+                  </div>
+                  <div className="absolute top-4 right-4">
+                    <div className="flex items-center bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full">
+                      <Star className="w-4 h-4 text-yellow-500 mr-1" />
+                      <span className="text-sm font-semibold">4.8</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg line-clamp-2 group-hover:text-emerald-600 transition-colors">
+                    {product.name}
+                  </CardTitle>
+                  <CardDescription className="line-clamp-2">
+                    {product.description}
+                  </CardDescription>
+                </CardHeader>
+                
+                <CardContent className="pt-0">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <Coins className="w-5 h-5 text-amber-500" />
+                        <span className="text-xl font-bold text-emerald-600">
+                          {product.priceCoins}
+                        </span>
+                        <span className="text-sm text-gray-500">coins</span>
+                      </div>
+                      <p className="text-sm text-gray-500">or ₹{product.priceINR}</p>
+                    </div>
+                    <Badge variant="outline" className="text-green-600 border-green-200">
+                      {product.stock} left
+                    </Badge>
+                  </div>
+                  
+                  <Button
+                    onClick={() => handlePurchase(product)}
+                    disabled={!user || user.coins < product.priceCoins}
+                    className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl transition-all duration-300 hover:scale-105"
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    {!user || user.coins < product.priceCoins ? 'Insufficient Coins' : 'Buy Now'}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
-
-        {/* Cart Indicator */}
-        {cart.length > 0 && (
-          <div className="fixed bottom-6 right-6 z-50">
-            <Button 
-              size="lg"
-              className="bg-gradient-to-r from-emerald-500 to-sky-500 hover:from-emerald-600 hover:to-sky-600 shadow-lg"
-              onClick={() => navigate('/cart')}
-            >
-              <ShoppingCart className="w-5 h-5 mr-2" />
-              Cart ({cart.length})
-            </Button>
-          </div>
-        )}
-      </main>
+      </div>
     </div>
   );
 };
