@@ -49,18 +49,19 @@ const Index = () => {
       quote: '"Technology meets sustainability"',
       sticker: '⚡ Smart Choice'
     },
-    {
-      type: 'product',
-      src: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1600&h=900&fit=crop',
-      title: 'Upcycled Fashion',
-      subtitle: 'Beautiful Accessories from Electronic Waste',
-      badge: '✨ Luxury Eco',
-      coins: '699 Coins',
-      discount: 'Limited',
-      eco_impact: '2kg E-Waste Upcycled',
-      quote: '"Beauty from waste"',
-      sticker: '💎 Eco Luxury'
-    },
+  {
+  type: 'product',
+  src: 'https://images.unsplash.com/photo-1592914764927-3eb86d9b1a0b?ixid=MnwxMjA3fDB8MXxzZWFyY2h8MTB8fHBlYXBlciUyMGJhZ3N8ZW58MHx8fHwxNjk4NDE3NjEx&ixlib=rb-4.0.3&q=80&w=1080',
+  title: 'Upcycled Fashion',
+  subtitle: 'Beautiful Accessories from Electronic Waste',
+  badge: '✨ Luxury Eco',
+  coins: '699 Coins',
+  discount: 'Limited',
+  eco_impact: '2kg E-Waste Upcycled',
+  quote: '"Beauty from waste"',
+  sticker: '💎 Eco Luxury'
+}
+,
     {
       type: 'product',
       src: 'https://images.unsplash.com/photo-1615729947596-a598e5de0ab3?w=1600&h=900&fit=crop',
