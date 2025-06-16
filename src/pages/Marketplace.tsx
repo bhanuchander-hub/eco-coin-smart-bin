@@ -3,9 +3,10 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Coins, Search, Filter, Star, ShoppingCart, Leaf, Award, TrendingUp } from 'lucide-react';
+import { Coins, Search, Filter, Star, ShoppingCart, Leaf, Award, TrendingUp, Users, MessageSquare } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import EnhancedNavbar from '@/components/EnhancedNavbar';
+import Chatbot from '@/components/Chatbot';
 import { ProductScraper, type ScrapedProduct } from '@/services/productScraper';
 
 const Marketplace = () => {
@@ -19,7 +20,7 @@ const Marketplace = () => {
     return userData ? JSON.parse(userData) : null;
   });
 
-  const categories = ['All', 'Mobile Accessories', 'Home & Garden', 'Fashion', 'Smart Home'];
+  const categories = ['All', 'Mobile Accessories', 'Home & Garden', 'Fashion', 'Smart Home', 'Fitness', 'Lifestyle', 'Tech Accessories', 'Office', 'Electronics', 'Home Decor', 'Kitchen', 'Stationery', 'Accessories'];
 
   useEffect(() => {
     loadProducts();
@@ -79,6 +80,17 @@ const Marketplace = () => {
     localStorage.setItem('smartbin_user', JSON.stringify(updatedUser));
     setUser(updatedUser);
     alert(`Successfully purchased ${product.name}! Your order will be shipped to your address.`);
+  };
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`w-4 h-4 ${
+          i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'
+        }`}
+      />
+    ));
   };
 
   if (isLoading) {
@@ -208,7 +220,7 @@ const Marketplace = () => {
                   <div className="absolute top-4 right-4">
                     <div className="flex items-center bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full">
                       <Star className="w-4 h-4 text-yellow-500 mr-1" />
-                      <span className="text-sm font-semibold">4.8</span>
+                      <span className="text-sm font-semibold">{product.rating || 4.5}</span>
                     </div>
                   </div>
                 </div>
@@ -223,6 +235,16 @@ const Marketplace = () => {
                 </CardHeader>
                 
                 <CardContent className="pt-0">
+                  {/* Rating and Reviews */}
+                  <div className="flex items-center space-x-2 mb-3">
+                    <div className="flex items-center">
+                      {renderStars(product.rating || 4.5)}
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      ({product.reviews || 156} reviews)
+                    </span>
+                  </div>
+
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <div className="flex items-center space-x-2">
@@ -253,6 +275,9 @@ const Marketplace = () => {
           </div>
         )}
       </div>
+
+      {/* Chatbot Component */}
+      <Chatbot />
     </div>
   );
 };
