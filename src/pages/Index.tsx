@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { QrCode, Leaf, Coins, Recycle, ArrowRight, Play } from 'lucide-react';
+import { QrCode, Leaf, Coins, Recycle, ArrowRight, Star, Award, Users, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
@@ -20,24 +20,39 @@ const Index = () => {
 
   const navigate = useNavigate();
 
+  // Updated hero slides with attractive recycling product advertisements
   const heroSlides = [
     {
-      type: 'image',
-      src: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600&h=900&fit=crop',
-      title: 'Transform Waste into Wealth',
-      subtitle: 'Join the circular economy revolution'
+      type: 'product',
+      src: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=1600&h=900&fit=crop',
+      title: 'Eco-Friendly Phone Cases',
+      subtitle: 'Made from 100% Ocean Plastic',
+      badge: 'New Arrival',
+      coins: '250 Coins'
     },
     {
-      type: 'image', 
-      src: 'https://images.unsplash.com/photo-1615729947596-a598e5de0ab3?w=1600&h=900&fit=crop',
-      title: 'Smart Recycling, Smarter Rewards',
-      subtitle: 'Earn coins for every plastic bottle you recycle'
+      type: 'product', 
+      src: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=1600&h=900&fit=crop',
+      title: 'Recycled Storage Solutions',
+      subtitle: 'Transform Your Space Sustainably',
+      badge: 'Best Seller',
+      coins: '180 Coins'
     },
     {
-      type: 'image',
-      src: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1600&h=900&fit=crop',
-      title: 'Shop Sustainable Products',
-      subtitle: 'Use your earned coins for eco-friendly purchases'
+      type: 'product',
+      src: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1600&h=900&fit=crop',
+      title: 'Upcycled Jewelry Collection',
+      subtitle: 'Beauty from Recycled Materials',
+      badge: 'Limited Edition',
+      coins: '320 Coins'
+    },
+    {
+      type: 'product',
+      src: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=1600&h=900&fit=crop',
+      title: 'Smart Home Accessories',
+      subtitle: 'Sustainable Tech Solutions',
+      badge: 'Trending',
+      coins: '450 Coins'
     }
   ];
 
@@ -79,47 +94,72 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-sky-50 to-amber-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-emerald-100 sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
+      {/* Enhanced Header */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-emerald-100 sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-sky-500 rounded-full flex items-center justify-center">
-              <Recycle className="w-6 h-6 text-white" />
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+              <Recycle className="w-7 h-7 text-white" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-sky-600 bg-clip-text text-transparent">
-              SmartBin
-            </span>
+            <div>
+              <span className="text-2xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                SmartBin
+              </span>
+              <p className="text-xs text-gray-600 font-medium">Sustainable Future</p>
+            </div>
           </div>
-          <Button variant="outline" className="border-emerald-200 text-emerald-600 hover:bg-emerald-50">
-            <QrCode className="w-4 h-4 mr-2" />
-            Quick QR Login
-          </Button>
+          <div className="flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-6 text-sm text-gray-600">
+              <span className="flex items-center"><Award className="w-4 h-4 mr-1 text-emerald-600" /> Certified Platform</span>
+              <span className="flex items-center"><Users className="w-4 h-4 mr-1 text-teal-600" /> 50K+ Users</span>
+            </div>
+            <Button variant="outline" className="border-emerald-200 text-emerald-600 hover:bg-emerald-50">
+              <QrCode className="w-4 h-4 mr-2" />
+              Quick QR Login
+            </Button>
+          </div>
         </div>
       </header>
 
-      {/* Hero Carousel Section */}
-      <section className="relative h-96 overflow-hidden">
+      {/* Enhanced Hero Carousel Section */}
+      <section className="relative h-[500px] overflow-hidden">
         <div className="relative h-full">
           {heroSlides.map((slide, index) => (
             <div
               key={index}
-              className={`absolute inset-0 transition-opacity duration-1000 ${
-                index === currentSlide ? 'opacity-100' : 'opacity-0'
+              className={`absolute inset-0 transition-all duration-1000 ${
+                index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
               }`}
             >
               <div
-                className="h-full bg-cover bg-center bg-gray-400"
+                className="h-full bg-cover bg-center"
                 style={{ backgroundImage: `url(${slide.src})` }}
               >
-                <div className="h-full bg-black/40 flex items-center justify-center">
-                  <div className="text-center text-white px-4">
-                    <h1 className="text-4xl md:text-6xl font-bold mb-4 animate-fade-in">
-                      {slide.title}
-                    </h1>
-                    <p className="text-xl md:text-2xl opacity-90 animate-fade-in">
-                      {slide.subtitle}
-                    </p>
+                <div className="h-full bg-gradient-to-r from-black/60 via-black/30 to-transparent flex items-center">
+                  <div className="container mx-auto px-4">
+                    <div className="max-w-2xl text-white">
+                      <div className="mb-4">
+                        <span className="inline-block px-4 py-2 bg-emerald-500/90 backdrop-blur-sm rounded-full text-sm font-semibold">
+                          {slide.badge}
+                        </span>
+                      </div>
+                      <h1 className="text-4xl md:text-6xl font-bold mb-4 leading-tight">
+                        {slide.title}
+                      </h1>
+                      <p className="text-xl md:text-2xl opacity-90 mb-6">
+                        {slide.subtitle}
+                      </p>
+                      <div className="flex items-center space-x-6">
+                        <div className="flex items-center space-x-2 bg-amber-500/90 backdrop-blur-sm px-4 py-2 rounded-full">
+                          <Coins className="w-5 h-5" />
+                          <span className="font-bold">{slide.coins}</span>
+                        </div>
+                        <Button className="bg-white text-gray-800 hover:bg-gray-100 px-8 py-3">
+                          Shop Now
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -127,109 +167,157 @@ const Index = () => {
           ))}
         </div>
 
-        {/* Navigation Controls */}
+        {/* Enhanced Navigation Controls */}
         <button
           onClick={prevSlide}
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+          className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/20 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all duration-300 shadow-lg"
         >
           <ArrowRight className="w-6 h-6 rotate-180" />
         </button>
         <button
           onClick={nextSlide}
-          className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+          className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/20 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all duration-300 shadow-lg"
         >
           <ArrowRight className="w-6 h-6" />
         </button>
 
-        {/* Dots Indicator */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
+        {/* Enhanced Dots Indicator */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-3">
           {heroSlides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className={`w-3 h-3 rounded-full transition-colors ${
-                index === currentSlide ? 'bg-white' : 'bg-white/50'
+              className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                index === currentSlide 
+                  ? 'bg-white scale-125 shadow-lg' 
+                  : 'bg-white/50 hover:bg-white/75'
               }`}
             />
           ))}
         </div>
+
+        {/* Auto-play indicator */}
+        <div className="absolute bottom-6 right-6 flex items-center space-x-2 text-white/80 text-sm">
+          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+          <span>Live Products</span>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-8 bg-white/80 backdrop-blur-sm border-y border-gray-100">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div className="space-y-2">
+              <div className="text-3xl font-bold text-emerald-600">50K+</div>
+              <div className="text-sm text-gray-600">Active Users</div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-3xl font-bold text-teal-600">2.5M</div>
+              <div className="text-sm text-gray-600">Plastic Recycled (kg)</div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-3xl font-bold text-cyan-600">15K+</div>
+              <div className="text-sm text-gray-600">Products Sold</div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-3xl font-bold text-amber-600">98%</div>
+              <div className="text-sm text-gray-600">Satisfaction Rate</div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          {/* Features Section */}
+      <main className="container mx-auto px-4 py-16">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          {/* Enhanced Features Section */}
           <div className="space-y-8">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-4">
+            <div className="space-y-4">
+              <div className="inline-flex items-center px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Leading the Change
+              </div>
+              <h2 className="text-4xl font-bold text-gray-800">
                 Revolutionizing Plastic Recycling
               </h2>
-              <p className="text-gray-600 text-lg">
-                Turn your plastic waste into valuable coins and shop for sustainable products. 
-                Join thousands of users making a difference for our planet.
+              <p className="text-xl text-gray-600 leading-relaxed">
+                Transform your plastic waste into valuable coins and discover amazing sustainable products. 
+                Join our community of eco-warriors making a real difference.
               </p>
             </div>
 
-            <div className="grid gap-6">
-              <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Recycle className="w-6 h-6 text-emerald-600" />
+            <div className="grid gap-8">
+              <div className="flex items-start space-x-6 p-6 bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="w-16 h-16 bg-gradient-to-r from-emerald-100 to-emerald-200 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <Recycle className="w-8 h-8 text-emerald-600" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-800 mb-2">Smart Deposit System</h3>
-                  <p className="text-gray-600">
-                    Simply scan your QR code and deposit plastic waste. Our smart bins 
-                    automatically weigh and assess quality.
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold text-gray-800">Smart Recognition Technology</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    Advanced AI-powered system automatically identifies and weighs plastic materials, 
+                    ensuring accurate quality assessment and fair coin rewards.
                   </p>
+                  <div className="flex items-center space-x-4 text-sm text-emerald-600 font-medium">
+                    <span className="flex items-center"><Star className="w-4 h-4 mr-1" /> 99% Accuracy</span>
+                    <span>• Real-time Processing</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Coins className="w-6 h-6 text-amber-600" />
+              <div className="flex items-start space-x-6 p-6 bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="w-16 h-16 bg-gradient-to-r from-amber-100 to-amber-200 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <Coins className="w-8 h-8 text-amber-600" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-800 mb-2">Earn Valuable Coins</h3>
-                  <p className="text-gray-600">
-                    Get rewarded with coins based on the weight and quality of your plastic deposits. 
-                    More recycling means more rewards!
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold text-gray-800">Instant Rewards System</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    Earn coins immediately based on weight and quality. Higher quality plastics 
+                    yield more coins, encouraging proper sorting and clean deposits.
                   </p>
+                  <div className="flex items-center space-x-4 text-sm text-amber-600 font-medium">
+                    <span className="flex items-center"><Coins className="w-4 h-4 mr-1" /> Up to 500 Coins/kg</span>
+                    <span>• Instant Transfer</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-sky-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Leaf className="w-6 h-6 text-sky-600" />
+              <div className="flex items-start space-x-6 p-6 bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="w-16 h-16 bg-gradient-to-r from-cyan-100 to-cyan-200 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <Leaf className="w-8 h-8 text-cyan-600" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-800 mb-2">Sustainable Shopping</h3>
-                  <p className="text-gray-600">
-                    Use your earned coins to purchase beautiful upcycled products made from 
-                    recycled plastic materials.
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold text-gray-800">Curated Sustainable Marketplace</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    Shop premium upcycled products made from recycled materials. Every purchase 
+                    supports circular economy and reduces environmental impact.
                   </p>
+                  <div className="flex items-center space-x-4 text-sm text-cyan-600 font-medium">
+                    <span className="flex items-center"><Award className="w-4 h-4 mr-1" /> Certified Products</span>
+                    <span>• Free Shipping</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Login/Register Form */}
+          {/* Enhanced Login/Register Form */}
           <div className="max-w-md mx-auto w-full">
-            <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-              <CardHeader className="text-center pb-4">
-                <CardTitle className="text-2xl text-gray-800">Welcome to SmartBin</CardTitle>
-                <CardDescription>
-                  Start your sustainable journey today
+            <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-md">
+              <CardHeader className="text-center pb-6">
+                <CardTitle className="text-3xl text-gray-800 mb-2">Join SmartBin</CardTitle>
+                <CardDescription className="text-lg">
+                  Start your sustainable journey today and earn rewards
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="login" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-6">
-                    <TabsTrigger value="login">Login</TabsTrigger>
-                    <TabsTrigger value="register">Register</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-2 mb-8 bg-gray-100">
+                    <TabsTrigger value="login" className="text-base">Sign In</TabsTrigger>
+                    <TabsTrigger value="register" className="text-base">Register</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="login">
-                    <form onSubmit={handleLogin} className="space-y-4">
+                    <form onSubmit={handleLogin} className="space-y-6">
                       <div>
                         <Input
                           type="email"
@@ -237,7 +325,7 @@ const Index = () => {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           required
-                          className="bg-white/50"
+                          className="bg-white/80 border-gray-200 h-12 text-base"
                         />
                       </div>
                       <div>
@@ -247,14 +335,14 @@ const Index = () => {
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           required
-                          className="bg-white/50"
+                          className="bg-white/80 border-gray-200 h-12 text-base"
                         />
                       </div>
-                      <Button type="submit" className="w-full bg-gradient-to-r from-emerald-500 to-sky-500 hover:from-emerald-600 hover:to-sky-600">
-                        Sign In
+                      <Button type="submit" className="w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 h-12 text-base font-semibold">
+                        Sign In & Start Earning
                       </Button>
                       <div className="text-center">
-                        <a href="#" className="text-sm text-emerald-600 hover:underline">
+                        <a href="#" className="text-sm text-emerald-600 hover:underline font-medium">
                           Forgot Password?
                         </a>
                       </div>
@@ -262,7 +350,7 @@ const Index = () => {
                   </TabsContent>
 
                   <TabsContent value="register">
-                    <form onSubmit={handleRegister} className="space-y-4">
+                    <form onSubmit={handleRegister} className="space-y-6">
                       <div>
                         <Input
                           type="text"
@@ -270,7 +358,7 @@ const Index = () => {
                           value={registerData.username}
                           onChange={(e) => setRegisterData({...registerData, username: e.target.value})}
                           required
-                          className="bg-white/50"
+                          className="bg-white/80 border-gray-200 h-12 text-base"
                         />
                       </div>
                       <div>
@@ -280,7 +368,7 @@ const Index = () => {
                           value={registerData.email}
                           onChange={(e) => setRegisterData({...registerData, email: e.target.value})}
                           required
-                          className="bg-white/50"
+                          className="bg-white/80 border-gray-200 h-12 text-base"
                         />
                       </div>
                       <div>
@@ -290,7 +378,7 @@ const Index = () => {
                           value={registerData.password}
                           onChange={(e) => setRegisterData({...registerData, password: e.target.value})}
                           required
-                          className="bg-white/50"
+                          className="bg-white/80 border-gray-200 h-12 text-base"
                         />
                       </div>
                       <div>
@@ -300,20 +388,55 @@ const Index = () => {
                           value={registerData.confirmPassword}
                           onChange={(e) => setRegisterData({...registerData, confirmPassword: e.target.value})}
                           required
-                          className="bg-white/50"
+                          className="bg-white/80 border-gray-200 h-12 text-base"
                         />
                       </div>
-                      <Button type="submit" className="w-full bg-gradient-to-r from-emerald-500 to-sky-500 hover:from-emerald-600 hover:to-sky-600">
-                        Create Account
+                      <Button type="submit" className="w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 h-12 text-base font-semibold">
+                        Create Account & Get 100 Coins
                       </Button>
                     </form>
                   </TabsContent>
                 </Tabs>
+
+                {/* Trust indicators */}
+                <div className="mt-8 pt-6 border-t border-gray-100">
+                  <div className="flex items-center justify-center space-x-6 text-xs text-gray-500">
+                    <div className="flex items-center">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                      SSL Secured
+                    </div>
+                    <div className="flex items-center">
+                      <Award className="w-3 h-3 mr-1" />
+                      Verified Platform
+                    </div>
+                    <div className="flex items-center">
+                      <Users className="w-3 h-3 mr-1" />
+                      50K+ Trust Us
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </main>
+
+      {/* Footer CTA */}
+      <footer className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white py-12">
+        <div className="container mx-auto px-4 text-center">
+          <h3 className="text-2xl font-bold mb-4">Ready to Make a Difference?</h3>
+          <p className="text-emerald-100 mb-6 max-w-2xl mx-auto">
+            Join thousands of users who are already earning coins and contributing to a sustainable future.
+          </p>
+          <div className="flex items-center justify-center space-x-4 text-sm">
+            <span className="flex items-center"><Recycle className="w-4 h-4 mr-1" /> 2.5M kg Recycled</span>
+            <span>•</span>
+            <span className="flex items-center"><Users className="w-4 h-4 mr-1" /> 50K+ Active Users</span>
+            <span>•</span>
+            <span className="flex items-center"><Award className="w-4 h-4 mr-1" /> ISO Certified</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
