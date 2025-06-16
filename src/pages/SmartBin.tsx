@@ -1,10 +1,18 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Recycle, Camera, Weight, Star, Coins, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { 
+  Camera, 
+  Coins, 
+  Recycle, 
+  CheckCircle, 
+  AlertCircle,
+  ShoppingCart,
+  ArrowLeft,
+  Zap
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 
@@ -116,7 +124,7 @@ const SmartBin = () => {
       case 'scanning': return <Camera className="w-6 h-6 text-blue-600 animate-pulse" />;
       case 'processing': return <RefreshCw className="w-6 h-6 text-amber-600 animate-spin" />;
       case 'success': return <CheckCircle className="w-6 h-6 text-emerald-600" />;
-      case 'error': return <XCircle className="w-6 h-6 text-red-600" />;
+      case 'error': return <AlertCircle className="w-6 h-6 text-red-600" />;
       default: return <Recycle className="w-6 h-6 text-gray-600" />;
     }
   };
