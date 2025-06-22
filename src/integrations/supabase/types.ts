@@ -9,7 +9,172 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      chatbot_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          message_type: string | null
+          response: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          message_type?: string | null
+          response: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          message_type?: string | null
+          response?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatbot_conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          estimated_weight: number | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          pickup_address: string | null
+          special_instructions: string | null
+          status: string | null
+          updated_at: string
+          user_id: string | null
+          waste_upload_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          estimated_weight?: number | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          pickup_address?: string | null
+          special_instructions?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+          waste_upload_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          estimated_weight?: number | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          pickup_address?: string | null
+          special_instructions?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+          waste_upload_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_waste_upload_id_fkey"
+            columns: ["waste_upload_id"]
+            isOneToOne: false
+            referencedRelation: "waste_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      waste_uploads: {
+        Row: {
+          classification: string | null
+          gemini_analysis: Json | null
+          id: string
+          image_path: string
+          image_url: string
+          uploaded_at: string
+          user_id: string | null
+          waste_type: string | null
+        }
+        Insert: {
+          classification?: string | null
+          gemini_analysis?: Json | null
+          id?: string
+          image_path: string
+          image_url: string
+          uploaded_at?: string
+          user_id?: string | null
+          waste_type?: string | null
+        }
+        Update: {
+          classification?: string | null
+          gemini_analysis?: Json | null
+          id?: string
+          image_path?: string
+          image_url?: string
+          uploaded_at?: string
+          user_id?: string | null
+          waste_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waste_uploads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
