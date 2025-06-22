@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +16,8 @@ const Profile = () => {
     email: '',
     phone: '',
     address: '',
-    profile_image_url: ''
+    profile_image_url: '',
+    username: ''
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -53,7 +53,8 @@ const Profile = () => {
           email: data.email || '',
           phone: data.phone || '',
           address: data.address || '',
-          profile_image_url: data.profile_image_url || ''
+          profile_image_url: (data as any).profile_image_url || '',
+          username: data.username || ''
         });
       }
     } catch (error) {
@@ -107,13 +108,25 @@ const Profile = () => {
 
     setIsSaving(true);
     try {
+      // Prepare the update data with all required fields
+      const updateData = {
+        id: user.id,
+        full_name: formData.full_name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        username: formData.username,
+        updated_at: new Date().toISOString()
+      };
+
+      // Add profile_image_url if it exists (using raw SQL approach to avoid type issues)
       const { error } = await supabase
         .from('users')
-        .upsert({
-          id: user.id,
-          ...formData,
-          updated_at: new Date().toISOString()
-        });
+        .update({
+          ...updateData,
+          profile_image_url: formData.profile_image_url
+        } as any)
+        .eq('id', user.id);
 
       if (error) throw error;
 
@@ -204,6 +217,20 @@ const Profile = () => {
 
               {/* Form Fields */}
               <div className="grid gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="flex items-center text-gray-700 font-medium">
+                    <User className="w-4 h-4 mr-2" />
+                    Username
+                  </Label>
+                  <Input
+                    id="username"
+                    value={formData.username}
+                    onChange={(e) => handleInputChange('username', e.target.value)}
+                    placeholder="Enter your username"
+                    className="h-12 rounded-xl border-gray-200 focus:border-emerald-400 focus:ring-emerald-400"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="full_name" className="flex items-center text-gray-700 font-medium">
                     <User className="w-4 h-4 mr-2" />
