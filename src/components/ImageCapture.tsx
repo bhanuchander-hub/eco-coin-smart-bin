@@ -109,7 +109,7 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onImageAnalyzed, onOrderCre
     }
   };
 
-  const uploadImageToStorage = async (imageDataUrl: string, analys isResult: any) => {
+  const uploadImageToStorage = async (imageDataUrl: string, analysisResult: any) => {
     setIsUploading(true);
     try {
       // Convert data URL to blob
