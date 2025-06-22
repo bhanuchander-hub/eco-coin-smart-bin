@@ -4,7 +4,8 @@ import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, MapPin, Star, Leaf, Package, Weight } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, MapPin, Star, Leaf, Package, Hash } from 'lucide-react';
 import EnhancedNavbar from '@/components/EnhancedNavbar';
 import MapLocationPicker from '@/components/MapLocationPicker';
 import { ProductScraper, type ScrapedProduct } from '@/services/productScraper';
@@ -17,8 +18,8 @@ const ProductDetail = () => {
   const [similarProducts, setSimilarProducts] = useState<ScrapedProduct[]>([]);
   const [showMap, setShowMap] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [weight, setWeight] = useState('');
-  const [weightUnit, setWeightUnit] = useState<'grams' | 'kg'>('grams');
+  const [productSize, setProductSize] = useState('');
+  const [productQuantity, setProductQuantity] = useState('1');
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(() => {
     const userData = localStorage.getItem('smartbin_user');
@@ -62,8 +63,13 @@ const ProductDetail = () => {
       return;
     }
 
-    if (!weight || parseFloat(weight) <= 0) {
-      toast.error('Please enter a valid weight');
+    if (!productSize) {
+      toast.error('Please select product size');
+      return;
+    }
+
+    if (!productQuantity || parseInt(productQuantity) <= 0) {
+      toast.error('Please enter a valid quantity');
       return;
     }
 
@@ -73,25 +79,24 @@ const ProductDetail = () => {
     }
 
     try {
-      // Convert weight to grams
-      const weightInGrams = weightUnit === 'kg' ? parseFloat(weight) * 1000 : parseFloat(weight);
-
       const { error } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
           status: 'pending',
-          latitude: selectedLocation.lat,
-          longitude: selectedLocation.lng,
-          estimated_weight: weightInGrams,
+          order_location_lat: selectedLocation.lat,
+          order_location_lng: selectedLocation.lng,
           pickup_address: `${selectedLocation.lat}, ${selectedLocation.lng}`,
-          special_instructions: `Pickup for ${product?.name} - ${weight} ${weightUnit}`
+          product_size: productSize,
+          product_quantity: parseInt(productQuantity),
+          special_instructions: `Pickup for ${product?.name} - Size: ${productSize}, Quantity: ${productQuantity}`
         });
 
       if (error) throw error;
 
       toast.success('Pickup booked successfully!');
-      setWeight('');
+      setProductSize('');
+      setProductQuantity('1');
       setSelectedLocation(null);
     } catch (error) {
       console.error('Error booking pickup:', error);
@@ -200,31 +205,39 @@ const ProductDetail = () => {
                   </Badge>
                 </div>
 
-                {/* Weight Input */}
+                {/* Product Size Selection */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Weight className="w-4 h-4 inline mr-1" />
-                    Waste Weight
+                    <Package className="w-4 h-4 inline mr-1" />
+                    Product Size
                   </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      value={weight}
-                      onChange={(e) => setWeight(e.target.value)}
-                      placeholder="Enter weight"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      min="0"
-                      step="0.1"
-                    />
-                    <select
-                      value={weightUnit}
-                      onChange={(e) => setWeightUnit(e.target.value as 'grams' | 'kg')}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    >
-                      <option value="grams">grams</option>
-                      <option value="kg">kg</option>
-                    </select>
-                  </div>
+                  <Select value={productSize} onValueChange={setProductSize}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="small">Small</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="large">Large</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Product Quantity */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Hash className="w-4 h-4 inline mr-1" />
+                    Number of Products
+                  </label>
+                  <input
+                    type="number"
+                    value={productQuantity}
+                    onChange={(e) => setProductQuantity(e.target.value)}
+                    placeholder="Enter quantity"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    min="1"
+                    step="1"
+                  />
                 </div>
 
                 {/* Location Selection */}
@@ -252,7 +265,7 @@ const ProductDetail = () => {
                 <Button
                   onClick={handleBookPickup}
                   className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3 text-lg"
-                  disabled={!weight || !selectedLocation || !user}
+                  disabled={!productSize || !productQuantity || !selectedLocation || !user}
                 >
                   Book Pickup
                 </Button>

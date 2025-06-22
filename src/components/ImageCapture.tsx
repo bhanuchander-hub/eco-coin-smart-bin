@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Camera, Upload, X, Loader2, MapPin, CheckCircle } from 'lucide-react';
+import { Camera, Upload, X, Loader2, CheckCircle, Weight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { GeminiApiService } from '@/services/geminiApi';
 import { toast } from 'sonner';
@@ -18,12 +18,8 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onImageAnalyzed, onOrderCre
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [showOrderForm, setShowOrderForm] = useState(false);
-  const [orderDetails, setOrderDetails] = useState({
-    address: '',
-    specialInstructions: '',
-    estimatedWeight: ''
-  });
+  const [wasteWeight, setWasteWeight] = useState('');
+  const [weightUnit, setWeightUnit] = useState<'grams' | 'kg'>('grams');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -113,7 +109,7 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onImageAnalyzed, onOrderCre
     }
   };
 
-  const uploadImageToStorage = async (imageDataUrl: string, analysisResult: any) => {
+  const uploadImageToStorage = async (imageDataUrl: string, analys isResult: any) => {
     setIsUploading(true);
     try {
       // Convert data URL to blob
@@ -138,6 +134,9 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onImageAnalyzed, onOrderCre
         .from('waste-images')
         .getPublicUrl(fileName);
 
+      // Convert weight to grams if needed
+      const weightInGrams = weightUnit === 'kg' ? parseFloat(wasteWeight) * 1000 : parseFloat(wasteWeight);
+
       // Save to waste_uploads table
       const { error: dbError } = await supabase
         .from('waste_uploads')
@@ -146,7 +145,8 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onImageAnalyzed, onOrderCre
           image_path: fileName,
           gemini_analysis: analysisResult,
           waste_type: analysisResult.wasteType,
-          classification: analysisResult.classification
+          classification: analysisResult.classification,
+          waste_weight_grams: weightInGrams || null
         });
 
       if (dbError) throw dbError;
@@ -160,67 +160,11 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onImageAnalyzed, onOrderCre
     }
   };
 
-  const createOrder = async () => {
-    if (!analysis || !capturedImage) return;
-
-    try {
-      // Get user location
-      const location = await getCurrentLocation();
-      
-      const orderData = {
-        pickup_address: orderDetails.address || 'Location from GPS',
-        latitude: location?.latitude || null,
-        longitude: location?.longitude || null,
-        special_instructions: orderDetails.specialInstructions,
-        estimated_weight: parseFloat(orderDetails.estimatedWeight) || null,
-        status: 'pending'
-      };
-
-      const { data: order, error } = await supabase
-        .from('orders')
-        .insert(orderData)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast.success('Pickup order created successfully!');
-      setShowOrderForm(false);
-      
-      if (onOrderCreated && order) {
-        onOrderCreated(order.id);
-      }
-    } catch (error) {
-      console.error('Error creating order:', error);
-      toast.error('Failed to create pickup order.');
-    }
-  };
-
-  const getCurrentLocation = (): Promise<{latitude: number, longitude: number} | null> => {
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        resolve(null);
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-        },
-        () => resolve(null),
-        { timeout: 10000, enableHighAccuracy: true }
-      );
-    });
-  };
-
   const resetCapture = () => {
     setCapturedImage(null);
     setAnalysis(null);
-    setShowOrderForm(false);
-    setOrderDetails({ address: '', specialInstructions: '', estimatedWeight: '' });
+    setWasteWeight('');
+    setWeightUnit('grams');
   };
 
   return (
@@ -318,50 +262,31 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onImageAnalyzed, onOrderCre
               </div>
             )}
 
-            {analysis && !showOrderForm && (
-              <Button 
-                onClick={() => setShowOrderForm(true)}
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-500"
-              >
-                <MapPin className="w-4 h-4 mr-2" />
-                Schedule Pickup
-              </Button>
-            )}
-
-            {showOrderForm && (
+            {/* Waste Weight Input */}
+            {analysis && (
               <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold">Pickup Details</h3>
-                <input
-                  type="text"
-                  placeholder="Pickup Address (optional - we'll use GPS)"
-                  value={orderDetails.address}
-                  onChange={(e) => setOrderDetails({...orderDetails, address: e.target.value})}
-                  className="w-full p-2 border rounded"
-                />
-                <input
-                  type="number"
-                  step="0.1"
-                  placeholder="Estimated Weight (kg)"
-                  value={orderDetails.estimatedWeight}
-                  onChange={(e) => setOrderDetails({...orderDetails, estimatedWeight: e.target.value})}
-                  className="w-full p-2 border rounded"
-                />
-                <textarea
-                  placeholder="Special Instructions"
-                  value={orderDetails.specialInstructions}
-                  onChange={(e) => setOrderDetails({...orderDetails, specialInstructions: e.target.value})}
-                  className="w-full p-2 border rounded h-20"
-                />
+                <h3 className="font-semibold flex items-center">
+                  <Weight className="w-4 h-4 mr-2" />
+                  Waste Weight
+                </h3>
                 <div className="flex gap-2">
-                  <Button onClick={createOrder} className="flex-1">
-                    Create Order
-                  </Button>
-                  <Button 
-                    onClick={() => setShowOrderForm(false)} 
-                    variant="outline"
+                  <input
+                    type="number"
+                    placeholder="Enter weight"
+                    value={wasteWeight}
+                    onChange={(e) => setWasteWeight(e.target.value)}
+                    className="flex-1 p-2 border rounded"
+                    min="0"
+                    step="0.1"
+                  />
+                  <select
+                    value={weightUnit}
+                    onChange={(e) => setWeightUnit(e.target.value as 'grams' | 'kg')}
+                    className="px-3 py-2 border rounded"
                   >
-                    Cancel
-                  </Button>
+                    <option value="grams">grams</option>
+                    <option value="kg">kg</option>
+                  </select>
                 </div>
               </div>
             )}
