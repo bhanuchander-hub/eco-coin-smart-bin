@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Coins, Search, Filter, Star, ShoppingCart, Leaf, Award, TrendingUp, Users, MessageSquare } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Link } from 'react-router-dom';
 import EnhancedNavbar from '@/components/EnhancedNavbar';
 import Chatbot from '@/components/Chatbot';
 import { ProductScraper, type ScrapedProduct } from '@/services/productScraper';
@@ -52,14 +53,18 @@ const Marketplace = () => {
   const filterProducts = () => {
     let filtered = products;
 
+    // Filter by category
     if (selectedCategory !== 'All') {
       filtered = filtered.filter(product => product.category === selectedCategory);
     }
 
-    if (searchTerm) {
+    // Filter by search term (case-insensitive, partial matches)
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase())
+        product.name.toLowerCase().includes(search) ||
+        product.description.toLowerCase().includes(search) ||
+        product.category.toLowerCase().includes(search)
       );
     }
 
@@ -189,6 +194,15 @@ const Marketplace = () => {
           </div>
         </div>
 
+        {/* Search Results Info */}
+        {searchTerm && (
+          <div className="mb-6">
+            <p className="text-gray-600">
+              Found {filteredProducts.length} products for "{searchTerm}"
+            </p>
+          </div>
+        )}
+
         {/* Products Grid */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16">
@@ -202,37 +216,39 @@ const Marketplace = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => (
               <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 bg-white/90 backdrop-blur-sm border-0 overflow-hidden">
-                <div className="relative">
-                  <img
-                    src={product.imageUrl}
-                    alt={product.name}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&h=300&fit=crop';
-                    }}
-                  />
-                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-emerald-500 text-white">
-                      <Leaf className="w-3 h-3 mr-1" />
-                      Eco-Friendly
-                    </Badge>
-                  </div>
-                  <div className="absolute top-4 right-4">
-                    <div className="flex items-center bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full">
-                      <Star className="w-4 h-4 text-yellow-500 mr-1" />
-                      <span className="text-sm font-semibold">{product.rating || 4.5}</span>
+                <Link to={`/product/${product.id}`}>
+                  <div className="relative">
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&h=300&fit=crop';
+                      }}
+                    />
+                    <div className="absolute top-4 left-4">
+                      <Badge className="bg-emerald-500 text-white">
+                        <Leaf className="w-3 h-3 mr-1" />
+                        Eco-Friendly
+                      </Badge>
+                    </div>
+                    <div className="absolute top-4 right-4">
+                      <div className="flex items-center bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full">
+                        <Star className="w-4 h-4 text-yellow-500 mr-1" />
+                        <span className="text-sm font-semibold">{product.rating || 4.5}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg line-clamp-2 group-hover:text-emerald-600 transition-colors">
-                    {product.name}
-                  </CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {product.description}
-                  </CardDescription>
-                </CardHeader>
+                  
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg line-clamp-2 group-hover:text-emerald-600 transition-colors">
+                      {product.name}
+                    </CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      {product.description}
+                    </CardDescription>
+                  </CardHeader>
+                </Link>
                 
                 <CardContent className="pt-0">
                   {/* Rating and Reviews */}
