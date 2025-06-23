@@ -49,7 +49,6 @@ const Auth = () => {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
           data: {
             username: formData.username,
             full_name: formData.full_name,
@@ -62,22 +61,6 @@ const Auth = () => {
       if (error) throw error;
 
       if (data.user) {
-        // Insert user data into users table
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email: formData.email,
-            username: formData.username,
-            full_name: formData.full_name,
-            phone: formData.phone,
-            address: formData.address
-          });
-
-        if (insertError) {
-          console.error('Error inserting user data:', insertError);
-        }
-
         toast.success('Account created successfully! Please check your email for verification.');
         setIsLogin(true);
       }
@@ -102,12 +85,16 @@ const Auth = () => {
       if (error) throw error;
 
       if (data.user) {
-        // Store user data in localStorage for quick access
-        const { data: userData } = await supabase
+        // Fetch user data from the users table
+        const { data: userData, error: userError } = await supabase
           .from('users')
           .select('*')
           .eq('id', data.user.id)
           .single();
+
+        if (userError) {
+          console.error('Error fetching user data:', userError);
+        }
 
         if (userData) {
           localStorage.setItem('smartbin_user', JSON.stringify({

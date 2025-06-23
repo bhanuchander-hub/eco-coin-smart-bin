@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,45 +26,53 @@ const Profile = () => {
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
-    const userData = localStorage.getItem('smartbin_user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      loadProfile(parsedUser.id);
-    } else {
-      setIsLoading(false);
-    }
+    const loadUser = async () => {
+      try {
+        // Get current user from Supabase auth
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        
+        if (!authUser) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch user profile from database
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', authUser.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error loading profile:', error);
+          toast.error('Failed to load profile');
+        } else if (userData) {
+          setUser(userData);
+          setFormData({
+            full_name: userData.full_name || '',
+            email: userData.email || '',
+            phone: userData.phone || '',
+            address: userData.address || '',
+            profile_image_url: userData.profile_image_url || '',
+            username: userData.username || ''
+          });
+          
+          // Update localStorage for backward compatibility
+          localStorage.setItem('smartbin_user', JSON.stringify({
+            ...userData,
+            coins: 1000 // Default coins
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading user:', error);
+        toast.error('Failed to load profile');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUser();
   }, []);
-
-  const loadProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      if (data) {
-        setFormData({
-          full_name: data.full_name || '',
-          email: data.email || '',
-          phone: data.phone || '',
-          address: data.address || '',
-          profile_image_url: (data as any).profile_image_url || '',
-          username: data.username || ''
-        });
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-      toast.error('Failed to load profile');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -108,33 +117,32 @@ const Profile = () => {
 
     setIsSaving(true);
     try {
-      // Prepare the update data with all required fields
-      const updateData = {
-        id: user.id,
-        full_name: formData.full_name,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        username: formData.username,
-        updated_at: new Date().toISOString()
-      };
-
-      // Add profile_image_url if it exists (using raw SQL approach to avoid type issues)
+      // Update user profile in database
       const { error } = await supabase
         .from('users')
         .update({
-          ...updateData,
-          profile_image_url: formData.profile_image_url
-        } as any)
+          full_name: formData.full_name,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          username: formData.username,
+          profile_image_url: formData.profile_image_url,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', user.id);
 
       if (error) throw error;
 
-      // Update localStorage
+      // Update local state
       const updatedUser = { ...user, ...formData };
-      localStorage.setItem('smartbin_user', JSON.stringify(updatedUser));
       setUser(updatedUser);
       setHasChanges(false);
+
+      // Update localStorage for backward compatibility
+      localStorage.setItem('smartbin_user', JSON.stringify({
+        ...updatedUser,
+        coins: 1000 // Default coins
+      }));
 
       toast.success('Profile updated successfully!');
     } catch (error) {
