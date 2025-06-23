@@ -141,6 +141,8 @@ export type Database = {
           id: string
           image_path: string
           image_url: string
+          pickup_location_lat: number | null
+          pickup_location_lng: number | null
           uploaded_at: string
           user_id: string | null
           waste_type: string | null
@@ -151,6 +153,8 @@ export type Database = {
           id?: string
           image_path: string
           image_url: string
+          pickup_location_lat?: number | null
+          pickup_location_lng?: number | null
           uploaded_at?: string
           user_id?: string | null
           waste_type?: string | null
@@ -161,6 +165,8 @@ export type Database = {
           id?: string
           image_path?: string
           image_url?: string
+          pickup_location_lat?: number | null
+          pickup_location_lng?: number | null
           uploaded_at?: string
           user_id?: string | null
           waste_type?: string | null

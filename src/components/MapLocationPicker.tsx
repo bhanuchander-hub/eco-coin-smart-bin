@@ -1,34 +1,118 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { X, MapPin, Target, Crosshair } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { X, MapPin, Target, Crosshair, Search, Loader2 } from 'lucide-react';
 
 interface MapLocationPickerProps {
-  onLocationSelect: (lat: number, lng: number) => void;
+  onLocationSelect: (lat: number, lng: number, address?: string) => void;
   onClose: () => void;
+  initialLat?: number;
+  initialLng?: number;
 }
 
-const MapLocationPicker = ({ onLocationSelect, onClose }: MapLocationPickerProps) => {
+interface SearchResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+}
+
+const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }: MapLocationPickerProps) => {
   const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<string>('');
   const [map, setMap] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+
+  // Search function using Nominatim API
+  const searchLocation = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&accept-language=en`
+      );
+      const results = await response.json();
+      setSearchResults(results);
+      setShowResults(true);
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Debounced search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery) {
+        searchLocation(searchQuery);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const selectSearchResult = (result: SearchResult) => {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    
+    if (map) {
+      map.setView([lat, lng], 15);
+    }
+    
+    setSelectedLocation({ lat, lng });
+    setSelectedAddress(result.display_name);
+    setSearchQuery(result.display_name.split(',')[0]); // Show short name in input
+    setShowResults(false);
+  };
+
+  // Reverse geocoding function
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=en&addressdetails=1`
+      );
+      const data = await response.json();
+      setSelectedAddress(data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+    } catch (error) {
+      console.error('Reverse geocoding error:', error);
+      setSelectedAddress(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+    }
+  };
 
   useEffect(() => {
     // Load Leaflet dynamically
     const loadLeaflet = async () => {
       const L = await import('leaflet');
       
-      // Initialize map with better default view
+      // Set initial coordinates
+      const initLat = initialLat || 28.6139;
+      const initLng = initialLng || 77.2090;
+      
+      // Initialize map
       const mapInstance = L.map('map-container', {
         zoomControl: true,
         scrollWheelZoom: true,
         doubleClickZoom: false
-      }).setView([28.6139, 77.2090], 15); // Delhi default with zoom 15
+      }).setView([initLat, initLng], 15);
       
-      // Add OpenStreetMap tiles with better styling
+      // Add OpenStreetMap tiles with English labels
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
+        maxZoom: 19,
+        // Force English labels by setting accept-language
+        tileSize: 256,
+        zoomOffset: 0
       }).addTo(mapInstance);
 
       let marker: any = null;
@@ -42,7 +126,7 @@ const MapLocationPicker = ({ onLocationSelect, onClose }: MapLocationPickerProps
           mapInstance.removeLayer(marker);
         }
         
-        // Add new marker with custom styling
+        // Add new marker
         marker = L.marker([lat, lng], {
           icon: L.divIcon({
             className: 'custom-div-icon',
@@ -53,21 +137,33 @@ const MapLocationPicker = ({ onLocationSelect, onClose }: MapLocationPickerProps
         }).addTo(mapInstance);
         
         setSelectedLocation({ lat, lng });
+        reverseGeocode(lat, lng);
       });
 
-      // Handle map movement to update center coordinates
-      mapInstance.on('move', () => {
-        const center = mapInstance.getCenter();
-        setSelectedLocation({ lat: center.lat, lng: center.lng });
-      });
+      // Set initial location if provided
+      if (initialLat && initialLng) {
+        setSelectedLocation({ lat: initialLat, lng: initialLng });
+        reverseGeocode(initialLat, initialLng);
+        
+        // Add initial marker
+        marker = L.marker([initialLat, initialLng], {
+          icon: L.divIcon({
+            className: 'custom-div-icon',
+            html: '<div style="background-color: #10b981; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+          })
+        }).addTo(mapInstance);
+      }
 
-      // Try to get user's current location
-      if (navigator.geolocation) {
+      // Try to get user's current location if no initial location provided
+      if (!initialLat && !initialLng && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
             mapInstance.setView([latitude, longitude], 15);
             setSelectedLocation({ lat: latitude, lng: longitude });
+            reverseGeocode(latitude, longitude);
           },
           (error) => {
             console.log('Geolocation error:', error);
@@ -91,7 +187,7 @@ const MapLocationPicker = ({ onLocationSelect, onClose }: MapLocationPickerProps
 
   const handleConfirmLocation = () => {
     if (selectedLocation) {
-      onLocationSelect(selectedLocation.lat, selectedLocation.lng);
+      onLocationSelect(selectedLocation.lat, selectedLocation.lng, selectedAddress);
     }
   };
 
@@ -107,6 +203,44 @@ const MapLocationPicker = ({ onLocationSelect, onClose }: MapLocationPickerProps
           <Button variant="ghost" size="sm" onClick={onClose} className="rounded-full">
             <X className="w-5 h-5" />
           </Button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="p-4 border-b border-gray-200 relative">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              type="text"
+              placeholder="Search for a location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-10"
+              onFocus={() => setShowResults(searchResults.length > 0)}
+            />
+            {isSearching && (
+              <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 animate-spin" />
+            )}
+          </div>
+
+          {/* Search Results */}
+          {showResults && searchResults.length > 0 && (
+            <div className="absolute top-full left-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+              {searchResults.map((result) => (
+                <button
+                  key={result.place_id}
+                  onClick={() => selectSearchResult(result)}
+                  className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="font-medium text-gray-800 text-sm">
+                    {result.display_name.split(',')[0]}
+                  </div>
+                  <div className="text-xs text-gray-500 truncate">
+                    {result.display_name}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         
         {/* Map Container */}
@@ -138,12 +272,19 @@ const MapLocationPicker = ({ onLocationSelect, onClose }: MapLocationPickerProps
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center text-gray-600">
               <Target className="w-4 h-4 mr-2" />
-              <p className="text-sm">
+              <div className="text-sm">
                 {selectedLocation 
-                  ? `Selected: ${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`
-                  : 'Move the map or click to select a location'
+                  ? (
+                    <div>
+                      <div className="font-medium">{selectedAddress}</div>
+                      <div className="text-xs text-gray-500">
+                        {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                      </div>
+                    </div>
+                  )
+                  : 'Click on the map or search to select a location'
                 }
-              </p>
+              </div>
             </div>
           </div>
           
