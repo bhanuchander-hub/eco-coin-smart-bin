@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, MapPin, Target, Crosshair, Search, Loader2 } from 'lucide-react';
@@ -18,15 +17,23 @@ interface SearchResult {
   lon: string;
 }
 
-const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }: MapLocationPickerProps) => {
-  const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number} | null>(null);
+const MapLocationPicker = ({
+  onLocationSelect,
+  onClose,
+  initialLat,
+  initialLng,
+}: MapLocationPickerProps) => {
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<string>('');
-  const [map, setMap] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+
+  // Use ref for map instance and marker to avoid stale closures
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
 
   // Search function using Nominatim API
   const searchLocation = async (query: string) => {
@@ -65,14 +72,15 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
   const selectSearchResult = (result: SearchResult) => {
     const lat = parseFloat(result.lat);
     const lng = parseFloat(result.lon);
-    
-    if (map) {
-      map.setView([lat, lng], 15);
+
+    if (mapRef.current) {
+      mapRef.current.setView([lat, lng], 15);
+      addOrMoveMarker(lat, lng);
     }
-    
+
     setSelectedLocation({ lat, lng });
     setSelectedAddress(result.display_name);
-    setSearchQuery(result.display_name.split(',')[0]); // Show short name in input
+    setSearchQuery(result.display_name.split(',')[0]);
     setShowResults(false);
   };
 
@@ -90,52 +98,55 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
     }
   };
 
+  // Helper to add or move marker
+  const addOrMoveMarker = (lat: number, lng: number) => {
+    if (!mapRef.current) return;
+
+    import('leaflet').then((L) => {
+      if (markerRef.current) {
+        markerRef.current.setLatLng([lat, lng]);
+      } else {
+        markerRef.current = L.marker([lat, lng], {
+          icon: L.divIcon({
+            className: 'custom-div-icon',
+            html:
+              '<div style="background-color: #10b981; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
+          }),
+        }).addTo(mapRef.current);
+      }
+    });
+  };
+
   useEffect(() => {
-    // Load Leaflet dynamically
+    let mapInstance: any = null;
+
     const loadLeaflet = async () => {
       const L = await import('leaflet');
-      
-      // Set initial coordinates
+
       const initLat = initialLat || 28.6139;
       const initLng = initialLng || 77.2090;
-      
-      // Initialize map
-      const mapInstance = L.map('map-container', {
+
+      mapInstance = L.map('map-container', {
         zoomControl: true,
         scrollWheelZoom: true,
-        doubleClickZoom: false
+        doubleClickZoom: false,
       }).setView([initLat, initLng], 15);
-      
-      // Add OpenStreetMap tiles with English labels
+
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
-        // Force English labels by setting accept-language
         tileSize: 256,
-        zoomOffset: 0
+        zoomOffset: 0,
       }).addTo(mapInstance);
 
-      let marker: any = null;
+      mapRef.current = mapInstance;
 
       // Handle map clicks
       mapInstance.on('click', (e: any) => {
         const { lat, lng } = e.latlng;
-        
-        // Remove existing marker
-        if (marker) {
-          mapInstance.removeLayer(marker);
-        }
-        
-        // Add new marker
-        marker = L.marker([lat, lng], {
-          icon: L.divIcon({
-            className: 'custom-div-icon',
-            html: '<div style="background-color: #10b981; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-          })
-        }).addTo(mapInstance);
-        
+        addOrMoveMarker(lat, lng);
         setSelectedLocation({ lat, lng });
         reverseGeocode(lat, lng);
       });
@@ -144,26 +155,15 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
       if (initialLat && initialLng) {
         setSelectedLocation({ lat: initialLat, lng: initialLng });
         reverseGeocode(initialLat, initialLng);
-        
-        // Add initial marker
-        marker = L.marker([initialLat, initialLng], {
-          icon: L.divIcon({
-            className: 'custom-div-icon',
-            html: '<div style="background-color: #10b981; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-          })
-        }).addTo(mapInstance);
-      }
-
-      // Try to get user's current location if no initial location provided
-      if (!initialLat && !initialLng && navigator.geolocation) {
+        addOrMoveMarker(initialLat, initialLng);
+      } else if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
             mapInstance.setView([latitude, longitude], 15);
             setSelectedLocation({ lat: latitude, lng: longitude });
             reverseGeocode(latitude, longitude);
+            addOrMoveMarker(latitude, longitude);
           },
           (error) => {
             console.log('Geolocation error:', error);
@@ -171,7 +171,6 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
         );
       }
 
-      setMap(mapInstance);
       setIsLoading(false);
     };
 
@@ -179,10 +178,13 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
 
     // Cleanup
     return () => {
-      if (map) {
-        map.remove();
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
       }
+      markerRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleConfirmLocation = () => {
@@ -221,7 +223,6 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
               <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 animate-spin" />
             )}
           </div>
-
           {/* Search Results */}
           {showResults && searchResults.length > 0 && (
             <div className="absolute top-full left-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
@@ -242,9 +243,9 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
             </div>
           )}
         </div>
-        
+
         {/* Map Container */}
-        <div className="relative h-96 bg-gray-100">
+        <div className="relative" style={{ height: 384, backgroundColor: '#f3f4f6' }}>
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
               <div className="text-center">
@@ -253,9 +254,13 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
               </div>
             </div>
           )}
-          
-          <div id="map-container" className="w-full h-full"></div>
-          
+
+          <div
+            id="map-container"
+            className="w-full h-full"
+            style={{ width: '100%', height: '384px' }}
+          ></div>
+
           {/* Crosshair in center */}
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
             <div className="relative">
@@ -266,37 +271,32 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
             </div>
           </div>
         </div>
-        
+
         {/* Footer */}
         <div className="p-6 bg-gray-50 border-t border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center text-gray-600">
               <Target className="w-4 h-4 mr-2" />
               <div className="text-sm">
-                {selectedLocation 
-                  ? (
-                    <div>
-                      <div className="font-medium">{selectedAddress}</div>
-                      <div className="text-xs text-gray-500">
-                        {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
-                      </div>
+                {selectedLocation ? (
+                  <div>
+                    <div className="font-medium">{selectedAddress}</div>
+                    <div className="text-xs text-gray-500">
+                      {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
                     </div>
-                  )
-                  : 'Click on the map or search to select a location'
-                }
+                  </div>
+                ) : (
+                  'Click on the map or search to select a location'
+                )}
               </div>
             </div>
           </div>
-          
+
           <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={onClose}
-              className="flex-1 rounded-xl"
-            >
+            <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleConfirmLocation}
               disabled={!selectedLocation}
               className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl"
