@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -40,6 +39,20 @@ const Auth = () => {
     }));
   };
 
+  const recordLogin = async (userId: string, email: string) => {
+    try {
+      await supabase.from('login').insert({
+        auth_user_id: userId,
+        email: email,
+        login_date: new Date().toISOString(),
+        login_method: 'email_password',
+        user_agent: navigator.userAgent
+      });
+    } catch (error) {
+      console.error('Error recording login:', error);
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -49,6 +62,7 @@ const Auth = () => {
         email: formData.email,
         password: formData.password,
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             username: formData.username,
             full_name: formData.full_name,
@@ -85,20 +99,23 @@ const Auth = () => {
       if (error) throw error;
 
       if (data.user) {
-        // Fetch user data from the users table
-        const { data: userData, error: userError } = await supabase
-          .from('users')
+        // Record login event
+        await recordLogin(data.user.id, data.user.email || '');
+
+        // Fetch user profile from the new profile table
+        const { data: profileData, error: profileError } = await supabase
+          .from('profile')
           .select('*')
-          .eq('id', data.user.id)
+          .eq('auth_user_id', data.user.id)
           .single();
 
-        if (userError) {
-          console.error('Error fetching user data:', userError);
+        if (profileError) {
+          console.error('Error fetching profile data:', profileError);
         }
 
-        if (userData) {
+        if (profileData) {
           localStorage.setItem('smartbin_user', JSON.stringify({
-            ...userData,
+            ...profileData,
             coins: 1000 // Default coins
           }));
         }

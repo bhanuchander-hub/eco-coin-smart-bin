@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, MapPin, Target, Crosshair, Search, Loader2 } from 'lucide-react';
+import { X, MapPin, Target, Crosshair, Search, Loader2, AlertTriangle } from 'lucide-react';
 
 interface MapLocationPickerProps {
   onLocationSelect: (lat: number, lng: number, address?: string) => void;
@@ -23,6 +23,7 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
   const [selectedAddress, setSelectedAddress] = useState<string>('');
   const [map, setMap] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [mapError, setMapError] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -93,86 +94,92 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
   useEffect(() => {
     // Load Leaflet dynamically
     const loadLeaflet = async () => {
-      const L = await import('leaflet');
-      
-      // Set initial coordinates
-      const initLat = initialLat || 28.6139;
-      const initLng = initialLng || 77.2090;
-      
-      // Initialize map
-      const mapInstance = L.map('map-container', {
-        zoomControl: true,
-        scrollWheelZoom: true,
-        doubleClickZoom: false
-      }).setView([initLat, initLng], 15);
-      
-      // Add OpenStreetMap tiles with English labels
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19,
-        // Force English labels by setting accept-language
-        tileSize: 256,
-        zoomOffset: 0
-      }).addTo(mapInstance);
-
-      let marker: any = null;
-
-      // Handle map clicks
-      mapInstance.on('click', (e: any) => {
-        const { lat, lng } = e.latlng;
+      try {
+        const L = await import('leaflet');
         
-        // Remove existing marker
-        if (marker) {
-          mapInstance.removeLayer(marker);
-        }
+        // Set initial coordinates
+        const initLat = initialLat || 28.6139;
+        const initLng = initialLng || 77.2090;
         
-        // Add new marker
-        marker = L.marker([lat, lng], {
-          icon: L.divIcon({
-            className: 'custom-div-icon',
-            html: '<div style="background-color: #10b981; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-          })
+        // Initialize map
+        const mapInstance = L.map('map-container', {
+          zoomControl: true,
+          scrollWheelZoom: true,
+          doubleClickZoom: false
+        }).setView([initLat, initLng], 15);
+        
+        // Add OpenStreetMap tiles with English labels
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 19,
+          tileSize: 256,
+          zoomOffset: 0
         }).addTo(mapInstance);
-        
-        setSelectedLocation({ lat, lng });
-        reverseGeocode(lat, lng);
-      });
 
-      // Set initial location if provided
-      if (initialLat && initialLng) {
-        setSelectedLocation({ lat: initialLat, lng: initialLng });
-        reverseGeocode(initialLat, initialLng);
-        
-        // Add initial marker
-        marker = L.marker([initialLat, initialLng], {
-          icon: L.divIcon({
-            className: 'custom-div-icon',
-            html: '<div style="background-color: #10b981; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-          })
-        }).addTo(mapInstance);
-      }
+        let marker: any = null;
 
-      // Try to get user's current location if no initial location provided
-      if (!initialLat && !initialLng && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            mapInstance.setView([latitude, longitude], 15);
-            setSelectedLocation({ lat: latitude, lng: longitude });
-            reverseGeocode(latitude, longitude);
-          },
-          (error) => {
-            console.log('Geolocation error:', error);
+        // Handle map clicks
+        mapInstance.on('click', (e: any) => {
+          const { lat, lng } = e.latlng;
+          
+          // Remove existing marker
+          if (marker) {
+            mapInstance.removeLayer(marker);
           }
-        );
-      }
+          
+          // Add new marker
+          marker = L.marker([lat, lng], {
+            icon: L.divIcon({
+              className: 'custom-div-icon',
+              html: '<div style="background-color: #10b981; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+              iconSize: [20, 20],
+              iconAnchor: [10, 10]
+            })
+          }).addTo(mapInstance);
+          
+          setSelectedLocation({ lat, lng });
+          reverseGeocode(lat, lng);
+        });
 
-      setMap(mapInstance);
-      setIsLoading(false);
+        // Set initial location if provided
+        if (initialLat && initialLng) {
+          setSelectedLocation({ lat: initialLat, lng: initialLng });
+          reverseGeocode(initialLat, initialLng);
+          
+          // Add initial marker
+          marker = L.marker([initialLat, initialLng], {
+            icon: L.divIcon({
+              className: 'custom-div-icon',
+              html: '<div style="background-color: #10b981; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+              iconSize: [20, 20],
+              iconAnchor: [10, 10]
+            })
+          }).addTo(mapInstance);
+        }
+
+        // Try to get user's current location if no initial location provided
+        if (!initialLat && !initialLng && navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude } = position.coords;
+              mapInstance.setView([latitude, longitude], 15);
+              setSelectedLocation({ lat: latitude, lng: longitude });
+              reverseGeocode(latitude, longitude);
+            },
+            (error) => {
+              console.log('Geolocation error:', error);
+            }
+          );
+        }
+
+        setMap(mapInstance);
+        setIsLoading(false);
+        setMapError(false);
+      } catch (error) {
+        console.error('Error loading map:', error);
+        setMapError(true);
+        setIsLoading(false);
+      }
     };
 
     loadLeaflet();
@@ -245,7 +252,30 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
         
         {/* Map Container */}
         <div className="relative h-96 bg-gray-100">
-          {isLoading && (
+          {/* Map Error Message */}
+          {mapError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-orange-50 z-20">
+              <div className="text-center p-6">
+                <AlertTriangle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+                <h4 className="text-lg font-semibold text-orange-800 mb-2">Map Display Issue</h4>
+                <p className="text-orange-700 mb-4">
+                  It looks like the map is not displaying correctly and appears clumsy or unclear. 
+                  Please ensure your internet connection is stable, and try refreshing the page. 
+                  If the issue persists, contact support or try again later.
+                </p>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  variant="outline"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                >
+                  Refresh Page
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isLoading && !mapError && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
               <div className="text-center">
                 <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-2"></div>
@@ -257,14 +287,16 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
           <div id="map-container" className="w-full h-full"></div>
           
           {/* Crosshair in center */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
-            <div className="relative">
-              <Crosshair className="w-8 h-8 text-emerald-600" />
-              <div className="absolute inset-0 animate-pulse">
-                <Crosshair className="w-8 h-8 text-emerald-400" />
+          {!mapError && !isLoading && (
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
+              <div className="relative">
+                <Crosshair className="w-8 h-8 text-emerald-600" />
+                <div className="absolute inset-0 animate-pulse">
+                  <Crosshair className="w-8 h-8 text-emerald-400" />
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
         
         {/* Footer */}
@@ -301,7 +333,7 @@ const MapLocationPicker = ({ onLocationSelect, onClose, initialLat, initialLng }
               disabled={!selectedLocation}
               className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl"
             >
-              Set This Location
+              Select This Location
             </Button>
           </div>
         </div>

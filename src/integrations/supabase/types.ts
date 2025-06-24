@@ -34,15 +34,40 @@ export type Database = {
           response?: string
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "chatbot_conversations_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      login: {
+        Row: {
+          auth_user_id: string | null
+          email: string
+          id: string
+          login_date: string
+          login_ip: unknown | null
+          login_method: string | null
+          session_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          auth_user_id?: string | null
+          email: string
+          id?: string
+          login_date?: string
+          login_ip?: unknown | null
+          login_method?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          auth_user_id?: string | null
+          email?: string
+          id?: string
+          login_date?: string
+          login_ip?: unknown | null
+          login_method?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
       }
       orders: {
         Row: {
@@ -86,13 +111,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "orders_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "orders_waste_upload_id_fkey"
             columns: ["waste_upload_id"]
             isOneToOne: false
@@ -101,10 +119,13 @@ export type Database = {
           },
         ]
       }
-      users: {
+      profile: {
         Row: {
           address: string | null
+          auth_user_id: string | null
+          bio: string | null
           created_at: string
+          date_of_birth: string | null
           email: string
           full_name: string | null
           id: string
@@ -115,7 +136,10 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          auth_user_id?: string | null
+          bio?: string | null
           created_at?: string
+          date_of_birth?: string | null
           email: string
           full_name?: string | null
           id?: string
@@ -126,13 +150,55 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          auth_user_id?: string | null
+          bio?: string | null
           created_at?: string
+          date_of_birth?: string | null
           email?: string
           full_name?: string | null
           id?: string
           phone?: string | null
           profile_image_url?: string | null
           updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      register: {
+        Row: {
+          address: string | null
+          auth_user_id: string | null
+          email: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          registration_date: string
+          registration_ip: unknown | null
+          user_agent: string | null
+          username: string
+        }
+        Insert: {
+          address?: string | null
+          auth_user_id?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          registration_date?: string
+          registration_ip?: unknown | null
+          user_agent?: string | null
+          username: string
+        }
+        Update: {
+          address?: string | null
+          auth_user_id?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          registration_date?: string
+          registration_ip?: unknown | null
+          user_agent?: string | null
           username?: string
         }
         Relationships: []
@@ -174,15 +240,7 @@ export type Database = {
           user_id?: string | null
           waste_type?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "waste_uploads_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {

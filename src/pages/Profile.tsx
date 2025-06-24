@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +17,8 @@ const Profile = () => {
     phone: '',
     address: '',
     profile_image_url: '',
-    username: ''
+    username: '',
+    bio: ''
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,30 +36,31 @@ const Profile = () => {
           return;
         }
 
-        // Fetch user profile from database
-        const { data: userData, error } = await supabase
-          .from('users')
+        // Fetch user profile from the new profile table
+        const { data: profileData, error } = await supabase
+          .from('profile')
           .select('*')
-          .eq('id', authUser.id)
+          .eq('auth_user_id', authUser.id)
           .single();
 
         if (error && error.code !== 'PGRST116') {
           console.error('Error loading profile:', error);
           toast.error('Failed to load profile');
-        } else if (userData) {
-          setUser(userData);
+        } else if (profileData) {
+          setUser(profileData);
           setFormData({
-            full_name: userData.full_name || '',
-            email: userData.email || '',
-            phone: userData.phone || '',
-            address: userData.address || '',
-            profile_image_url: userData.profile_image_url || '',
-            username: userData.username || ''
+            full_name: profileData.full_name || '',
+            email: profileData.email || '',
+            phone: profileData.phone || '',
+            address: profileData.address || '',
+            profile_image_url: profileData.profile_image_url || '',
+            username: profileData.username || '',
+            bio: profileData.bio || ''
           });
           
           // Update localStorage for backward compatibility
           localStorage.setItem('smartbin_user', JSON.stringify({
-            ...userData,
+            ...profileData,
             coins: 1000 // Default coins
           }));
         }
@@ -86,7 +87,7 @@ const Profile = () => {
     setIsUploading(true);
     try {
       // Upload to Supabase Storage
-      const fileName = `profile-${user.id}-${Date.now()}.${file.name.split('.').pop()}`;
+      const fileName = `profile-${user.auth_user_id}-${Date.now()}.${file.name.split('.').pop()}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('waste-images')
@@ -117,9 +118,9 @@ const Profile = () => {
 
     setIsSaving(true);
     try {
-      // Update user profile in database
+      // Update user profile in the new profile table
       const { error } = await supabase
-        .from('users')
+        .from('profile')
         .update({
           full_name: formData.full_name,
           email: formData.email,
@@ -127,9 +128,10 @@ const Profile = () => {
           address: formData.address,
           username: formData.username,
           profile_image_url: formData.profile_image_url,
+          bio: formData.bio,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id);
+        .eq('auth_user_id', user.auth_user_id);
 
       if (error) throw error;
 
