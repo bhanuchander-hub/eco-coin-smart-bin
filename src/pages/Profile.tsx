@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Mail, Phone, MapPin, Camera, Save } from 'lucide-react';
 import EnhancedNavbar from '@/components/EnhancedNavbar';
-import { supabase } from '@/integrations/supabase/client';
+import { profileApi, authApi } from '@/services/api';
 import { toast } from 'sonner';
 
 const Profile = () => {
@@ -28,40 +28,31 @@ const Profile = () => {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        // Get current user from Supabase auth
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        
-        if (!authUser) {
+        if (!authApi.isAuthenticated()) {
           setIsLoading(false);
           return;
         }
 
-        // Fetch user profile from the new profile table
-        const { data: profileData, error } = await supabase
-          .from('profile')
-          .select('*')
-          .eq('auth_user_id', authUser.id)
-          .single();
+        // Fetch user profile from API
+        const { profile } = await profileApi.get();
 
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error loading profile:', error);
-          toast.error('Failed to load profile');
-        } else if (profileData) {
-          setUser(profileData);
+        if (profile) {
+          setUser(profile);
           setFormData({
-            full_name: profileData.full_name || '',
-            email: profileData.email || '',
-            phone: profileData.phone || '',
-            address: profileData.address || '',
-            profile_image_url: profileData.profile_image_url || '',
-            username: profileData.username || '',
-            bio: profileData.bio || ''
+            full_name: profile.full_name || '',
+            email: profile.email || '',
+            phone: profile.phone || '',
+            address: profile.address || '',
+            profile_image_url: profile.profile_image_url || '',
+            username: profile.username || '',
+            bio: profile.bio || ''
           });
           
           // Update localStorage for backward compatibility
           localStorage.setItem('smartbin_user', JSON.stringify({
-            ...profileData,
-            coins: 1000 // Default coins
+            ...profile,
+            id: profile._id,
+            auth_user_id: profile._id
           }));
         }
       } catch (error) {
@@ -86,25 +77,19 @@ const Profile = () => {
 
     setIsUploading(true);
     try {
-      // Upload to Supabase Storage
-      const fileName = `profile-${user.auth_user_id}-${Date.now()}.${file.name.split('.').pop()}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('waste-images')
-        .upload(fileName, file, {
-          contentType: file.type,
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('waste-images')
-        .getPublicUrl(fileName);
-
-      handleInputChange('profile_image_url', publicUrl);
-      toast.success('Profile image uploaded successfully!');
+      // For now, we'll use a data URL approach
+      // In production, you'd upload to a cloud storage service and get the URL
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const imageDataUrl = e.target?.result as string;
+        
+        // Update profile with the image URL
+        // Note: In production, you should upload to cloud storage (S3, Cloudinary, etc.)
+        // and use the returned URL instead of data URL
+        handleInputChange('profile_image_url', imageDataUrl);
+        toast.success('Profile image updated! Click Save to persist changes.');
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error('Failed to upload image');
@@ -118,22 +103,16 @@ const Profile = () => {
 
     setIsSaving(true);
     try {
-      // Update user profile in the new profile table
-      const { error } = await supabase
-        .from('profile')
-        .update({
-          full_name: formData.full_name,
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
-          username: formData.username,
-          profile_image_url: formData.profile_image_url,
-          bio: formData.bio,
-          updated_at: new Date().toISOString()
-        })
-        .eq('auth_user_id', user.auth_user_id);
-
-      if (error) throw error;
+      // Update user profile via API
+      const { profile } = await profileApi.update({
+        full_name: formData.full_name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        username: formData.username,
+        profile_image_url: formData.profile_image_url,
+        bio: formData.bio
+      });
 
       // Update local state
       const updatedUser = { ...user, ...formData };
@@ -143,7 +122,8 @@ const Profile = () => {
       // Update localStorage for backward compatibility
       localStorage.setItem('smartbin_user', JSON.stringify({
         ...updatedUser,
-        coins: 1000 // Default coins
+        id: profile._id,
+        auth_user_id: profile._id
       }));
 
       toast.success('Profile updated successfully!');
@@ -155,7 +135,7 @@ const Profile = () => {
     }
   };
 
-  if (!user) {
+  if (!authApi.isAuthenticated()) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50">
         <EnhancedNavbar />

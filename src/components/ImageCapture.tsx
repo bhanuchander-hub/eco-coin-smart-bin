@@ -1,9 +1,8 @@
-
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Camera, Upload, X, Loader2, CheckCircle, Weight, MapPin } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { wasteUploadsApi, authApi } from '@/services/api';
 import { GeminiApiService } from '@/services/geminiApi';
 import { toast } from 'sonner';
 import MapLocationPicker from './MapLocationPicker';
@@ -100,7 +99,7 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onImageAnalyzed, onOrderCre
       const analysisResult = await GeminiApiService.analyzeWasteImage(base64);
       setAnalysis(analysisResult);
       
-      // Upload to Supabase Storage
+      // Upload to backend API
       await uploadImageToStorage(imageDataUrl, analysisResult);
       
       toast.success('Image analyzed successfully!');
@@ -119,47 +118,37 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({ onImageAnalyzed, onOrderCre
   const uploadImageToStorage = async (imageDataUrl: string, analysisResult: any) => {
     setIsUploading(true);
     try {
-      // Convert data URL to blob
-      const response = await fetch(imageDataUrl);
-      const blob = await response.blob();
-      
-      // Generate unique filename
-      const fileName = `waste-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-      
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('waste-images')
-        .upload(fileName, blob, {
-          contentType: 'image/jpeg',
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('waste-images')
-        .getPublicUrl(fileName);
-
       // Convert weight to grams if needed
       const weightInGrams = weightUnit === 'kg' ? parseFloat(wasteWeight) * 1000 : parseFloat(wasteWeight);
 
-      // Save to waste_uploads table with pickup location
-      const { error: dbError } = await supabase
-        .from('waste_uploads')
-        .insert({
-          image_url: publicUrl,
-          image_path: fileName,
-          gemini_analysis: analysisResult,
-          waste_type: analysisResult.wasteType,
-          classification: analysisResult.classification,
-          pickup_location_lat: pickupLocation?.lat || null,
-          pickup_location_lng: pickupLocation?.lng || null
-        });
+      // For image storage, in production you would:
+      // 1. Upload to a cloud storage service (S3, Cloudinary, etc.)
+      // 2. Get the public URL
+      // 3. Store that URL in the database
+      // For now, we'll store the data URL (not recommended for production)
+      
+      const response = await wasteUploadsApi.create({
+        image_url: imageDataUrl, // In production, this should be a cloud storage URL
+        gemini_analysis: analysisResult,
+        waste_type: analysisResult.wasteType,
+        classification: analysisResult.classification,
+        weight_grams: weightInGrams || 0,
+        pickup_location_lat: pickupLocation?.lat,
+        pickup_location_lng: pickupLocation?.lng,
+        pickup_address: pickupLocation?.address
+      });
 
-      if (dbError) throw dbError;
-
-      toast.success('Image uploaded successfully!');
+      if (response.coins_earned) {
+        toast.success(`You earned ${response.coins_earned} coins!`);
+        
+        // Update local user data
+        const userData = localStorage.getItem('smartbin_user');
+        if (userData) {
+          const user = JSON.parse(userData);
+          user.coins = (user.coins || 0) + response.coins_earned;
+          localStorage.setItem('smartbin_user', JSON.stringify(user));
+        }
+      }
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error('Failed to upload image.');
