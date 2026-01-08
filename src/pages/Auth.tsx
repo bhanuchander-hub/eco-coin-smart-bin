@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
+import { authApi } from '@/services/api';
 import { toast } from 'sonner';
 import { Leaf, Mail, Lock, User, Phone, MapPin } from 'lucide-react';
 
@@ -24,9 +24,21 @@ const Auth = () => {
   useEffect(() => {
     // Check if user is already logged in
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/dashboard');
+      if (authApi.isAuthenticated()) {
+        try {
+          const { user } = await authApi.getCurrentUser();
+          if (user) {
+            localStorage.setItem('smartbin_user', JSON.stringify({
+              ...user,
+              id: user._id,
+              auth_user_id: user._id
+            }));
+            navigate('/dashboard');
+          }
+        } catch (error) {
+          // Token might be invalid, remove it
+          authApi.removeToken();
+        }
       }
     };
     checkUser();
@@ -39,44 +51,29 @@ const Auth = () => {
     }));
   };
 
-  const recordLogin = async (userId: string, email: string) => {
-    try {
-      await supabase.from('login').insert({
-        auth_user_id: userId,
-        email: email,
-        login_date: new Date().toISOString(),
-        login_method: 'email_password',
-        user_agent: navigator.userAgent
-      });
-    } catch (error) {
-      console.error('Error recording login:', error);
-    }
-  };
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const response = await authApi.register({
         email: formData.email,
         password: formData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            username: formData.username,
-            full_name: formData.full_name,
-            phone: formData.phone,
-            address: formData.address
-          }
-        }
+        username: formData.username,
+        full_name: formData.full_name,
+        phone: formData.phone,
+        address: formData.address
       });
 
-      if (error) throw error;
-
-      if (data.user) {
-        toast.success('Account created successfully! Please check your email for verification.');
-        setIsLogin(true);
+      if (response.user) {
+        toast.success('Account created successfully!');
+        // Store user data
+        localStorage.setItem('smartbin_user', JSON.stringify({
+          ...response.user,
+          id: response.user._id,
+          auth_user_id: response.user._id
+        }));
+        navigate('/dashboard');
       }
     } catch (error: any) {
       console.error('Sign up error:', error);
@@ -91,34 +88,15 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password
-      });
+      const response = await authApi.login(formData.email, formData.password);
 
-      if (error) throw error;
-
-      if (data.user) {
-        // Record login event
-        await recordLogin(data.user.id, data.user.email || '');
-
-        // Fetch user profile from the new profile table
-        const { data: profileData, error: profileError } = await supabase
-          .from('profile')
-          .select('*')
-          .eq('auth_user_id', data.user.id)
-          .single();
-
-        if (profileError) {
-          console.error('Error fetching profile data:', profileError);
-        }
-
-        if (profileData) {
-          localStorage.setItem('smartbin_user', JSON.stringify({
-            ...profileData,
-            coins: 1000 // Default coins
-          }));
-        }
+      if (response.user) {
+        // Store user data
+        localStorage.setItem('smartbin_user', JSON.stringify({
+          ...response.user,
+          id: response.user._id,
+          auth_user_id: response.user._id
+        }));
 
         toast.success('Welcome back!');
         navigate('/dashboard');

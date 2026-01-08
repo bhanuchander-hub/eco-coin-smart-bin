@@ -1,15 +1,14 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Calendar, Weight, Package, X } from 'lucide-react';
 import EnhancedNavbar from '@/components/EnhancedNavbar';
-import { supabase } from '@/integrations/supabase/client';
+import { ordersApi, authApi } from '@/services/api';
 import { toast } from 'sonner';
 
 interface Order {
-  id: string;
+  _id: string;
   status: string;
   pickup_address: string;
   latitude: number;
@@ -29,8 +28,10 @@ const Orders = () => {
   });
 
   useEffect(() => {
-    if (user) {
+    if (user && authApi.isAuthenticated()) {
       loadOrders();
+    } else {
+      setIsLoading(false);
     }
   }, [user]);
 
@@ -38,15 +39,8 @@ const Orders = () => {
     try {
       setIsLoading(true);
       
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setOrders(data || []);
+      const { orders: orderData } = await ordersApi.getAll();
+      setOrders(orderData || []);
     } catch (error) {
       console.error('Error loading orders:', error);
       toast.error('Failed to load orders');
@@ -57,18 +51,12 @@ const Orders = () => {
 
   const handleCancelOrder = async (orderId: string) => {
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-        .eq('id', orderId)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+      await ordersApi.cancel(orderId);
 
       // Update local state
       setOrders(prev => 
         prev.map(order => 
-          order.id === orderId 
+          order._id === orderId 
             ? { ...order, status: 'cancelled' }
             : order
         )
@@ -107,7 +95,7 @@ const Orders = () => {
     return new Date(dateString).toLocaleString();
   };
 
-  if (!user) {
+  if (!user || !authApi.isAuthenticated()) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50">
         <EnhancedNavbar />
@@ -163,11 +151,11 @@ const Orders = () => {
         ) : (
           <div className="grid gap-6">
             {orders.map((order) => (
-              <Card key={order.id} className="bg-white/90 backdrop-blur-sm border-0 shadow-lg">
+              <Card key={order._id} className="bg-white/90 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-lg">Order #{order.id.slice(0, 8)}</CardTitle>
+                      <CardTitle className="text-lg">Order #{order._id.slice(0, 8)}</CardTitle>
                       <CardDescription className="flex items-center mt-1">
                         <Calendar className="w-4 h-4 mr-1" />
                         {formatDate(order.created_at)}
@@ -181,7 +169,7 @@ const Orders = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleCancelOrder(order.id)}
+                          onClick={() => handleCancelOrder(order._id)}
                           className="text-red-600 border-red-300 hover:bg-red-50"
                         >
                           <X className="w-4 h-4 mr-1" />
